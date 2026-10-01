@@ -1,4 +1,6 @@
 #include <JuceHeader.h>
+#include "PluginEditor.h"
+
 
 //==============================================================================
 // Audio processor
@@ -654,8 +656,7 @@ juce::NormalisableRange<float>(
     //==========================================================================
     juce::AudioProcessorEditor* createEditor() override
     {
-        return new juce::GenericAudioProcessorEditor(
-            *this);
+        return new CloudMakingMachineAudioProcessorEditor(*this);
     }
 
     bool hasEditor() const override
@@ -747,6 +748,8 @@ juce::NormalisableRange<float>(
     }
 
 private:
+    friend class CloudMakingMachineAudioProcessorEditor;
+
     //==========================================================================
     juce::AudioProcessorValueTreeState parameters;
 
