@@ -17,34 +17,35 @@ public:
 
         g.setImageResamplingQuality(juce::Graphics::highResamplingQuality);
 
-        // Diagnostic renderer:
-        // deliberately simple so that any movement must come directly from
-        // JUCE's live sliderPos supplied to drawLinearSlider().
-        g.setColour(juce::Colour::fromRGB(20, 45, 48));
-
         if (vertical)
         {
             const float cx = x + width * 0.5f;
-            const float trackW = juce::jmin(12.0f, width * 0.18f);
 
-            g.fillRoundedRectangle(
-                cx - trackW * 0.5f, static_cast<float>(y),
-                trackW, static_cast<float>(height), trackW * 0.5f);
-
-            const float thumbY = sliderPos;
-            const float thumbW = juce::jmin(42.0f, width * 0.72f);
-            const float thumbH = juce::jmin(18.0f, height * 0.08f);
-
+            // Fixed white vertical guide line.
+            const float lineW = juce::jmin(36.0f, width * 0.54f);
             g.setColour(juce::Colour::fromRGB(225, 247, 246));
             g.fillRoundedRectangle(
-                cx - thumbW * 0.5f, thumbY - thumbH * 0.5f,
+                cx - lineW * 0.5f, static_cast<float>(y),
+                lineW, static_cast<float>(height), lineW * 0.5f);
+
+            // The dark rectangular thumb is the part that moves vertically.
+            const float thumbW = juce::jmin(84.0f, width * 1.44f);
+            const float thumbH = juce::jmin(36.0f, height * 0.16f);
+
+            g.setColour(juce::Colour::fromRGB(20, 45, 48));
+            g.fillRoundedRectangle(
+                cx - thumbW * 0.5f,
+                sliderPos - thumbH * 0.5f,
                 thumbW, thumbH, thumbH * 0.5f);
         }
         else
         {
+            // Horizontal slider is intentionally left as the working diagnostic
+            // implementation. Do not change its behaviour.
             const float cy = y + height * 0.5f;
             const float trackH = juce::jmin(10.0f, height * 0.30f);
 
+            g.setColour(juce::Colour::fromRGB(20, 45, 48));
             g.fillRoundedRectangle(
                 static_cast<float>(x), cy - trackH * 0.5f,
                 static_cast<float>(width), trackH, trackH * 0.5f);
