@@ -10,86 +10,56 @@ public:
     }
 
     void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
-                          float sliderPos, float, float, juce::Slider::SliderStyle style,
-                          juce::Slider& slider) override
+                          float sliderPos, float /*minSliderPos*/, float /*maxSliderPos*/,
+                          juce::Slider::SliderStyle style, juce::Slider& slider) override
     {
-        const bool vertical = style == juce::Slider::LinearVertical;
-        const auto cyan = juce::Colour::fromRGB(20, 220, 226);
-        const auto cyanBright = juce::Colour::fromRGB(38, 238, 244);
-        const auto dark = juce::Colour::fromRGB(12, 48, 52);
-        const auto shadow = juce::Colour::fromRGB(4, 30, 33);
-        const auto white = juce::Colour::fromRGB(225, 247, 246);
+        const bool vertical = (style == juce::Slider::LinearVertical);
 
         g.setImageResamplingQuality(juce::Graphics::highResamplingQuality);
 
+        // Diagnostic renderer:
+        // deliberately simple so that any movement must come directly from
+        // JUCE's live sliderPos supplied to drawLinearSlider().
+        g.setColour(juce::Colour::fromRGB(20, 45, 48));
+
         if (vertical)
         {
-            const int cx = x + width / 2;
-            const int top = y + 6;
-            const int bottom = y + height - 6;
+            const float cx = x + width * 0.5f;
+            const float trackW = juce::jmin(12.0f, width * 0.18f);
 
-            g.setColour(shadow);
-            g.fillRect(cx - 8, top + 2, 16, bottom - top);
-            g.setColour(dark);
-            g.fillRect(cx - 6, top, 12, bottom - top);
+            g.fillRoundedRectangle(
+                cx - trackW * 0.5f, static_cast<float>(y),
+                trackW, static_cast<float>(height), trackW * 0.5f);
 
-            const int segments = 18;
-            const int gap = 2;
-            const float usable = static_cast<float>(bottom - top - 8);
-            const float segmentH = (usable - gap * (segments - 1)) / segments;
-            const float visualPos = sliderPos;
-            const float normalized = juce::jlimit(
-                0.0f, 1.0f,
-                juce::jmap(visualPos,
-                           static_cast<float>(bottom),
-                           static_cast<float>(top)));
+            const float thumbY = sliderPos;
+            const float thumbW = juce::jmin(42.0f, width * 0.72f);
+            const float thumbH = juce::jmin(18.0f, height * 0.08f);
 
-            for (int i = 0; i < segments; ++i)
-            {
-                const float yy = bottom - 4.0f - (i + 1) * segmentH - i * gap;
-                g.setColour(((segments - i) / static_cast<float>(segments)) <= normalized
-                                ? cyanBright : juce::Colour::fromRGB(20, 70, 73));
-                g.fillRect(juce::Rectangle<float>(static_cast<float>(cx - 5), yy,
-                                                   10.0f, segmentH));
-            }
-
-            const int thumbY = juce::jlimit(
-                top + 10, bottom - 10, juce::roundToInt(visualPos));
-            g.setColour(shadow);
-            g.fillRect(cx - 12, thumbY - 12, 24, 24);
-            g.setColour(white);
-            g.fillRect(cx - 9, thumbY - 9, 18, 18);
-            g.setColour(cyan);
-            g.fillRect(cx - 6, thumbY - 6, 12, 12);
+            g.setColour(juce::Colour::fromRGB(225, 247, 246));
+            g.fillRoundedRectangle(
+                cx - thumbW * 0.5f, thumbY - thumbH * 0.5f,
+                thumbW, thumbH, thumbH * 0.5f);
         }
         else
         {
-            const int cy = y + height / 2;
-            const int left = x + 4;
-            const int right = x + width - 4;
+            const float cy = y + height * 0.5f;
+            const float trackH = juce::jmin(10.0f, height * 0.30f);
 
-            g.setColour(shadow);
-            g.fillRoundedRectangle((float) left + 2.0f, (float) cy - 4.0f,
-                                   (float) (right - left), 10.0f, 3.0f);
-            g.setColour(dark);
-            g.fillRoundedRectangle((float) left, (float) cy - 6.0f,
-                                   (float) (right - left), 10.0f, 3.0f);
+            g.fillRoundedRectangle(
+                static_cast<float>(x), cy - trackH * 0.5f,
+                static_cast<float>(width), trackH, trackH * 0.5f);
 
-            const int fillRight = juce::roundToInt(juce::jmap(sliderPos,
-                                                              (float) left,
-                                                              (float) right));
-            g.setColour(cyanBright);
-            if (fillRight > left + 2)
-                g.fillRoundedRectangle((float) left + 2.0f, (float) cy - 4.0f,
-                                       (float) (fillRight - left - 2), 6.0f, 2.0f);
+            const float thumbX = sliderPos;
+            const float thumbW = juce::jmin(18.0f, width * 0.08f);
+            const float thumbH = juce::jmin(42.0f, height * 0.72f);
 
-            g.setColour(shadow);
-            g.fillRect(fillRight - 8, cy - 11, 16, 22);
-            g.setColour(white);
-            g.fillRect(fillRight - 6, cy - 9, 12, 18);
-            g.setColour(cyan);
-            g.fillRect(fillRight - 3, cy - 6, 6, 12);
+            g.setColour(juce::Colour::fromRGB(225, 247, 246));
+            g.fillRoundedRectangle(
+                thumbX - thumbW * 0.5f, cy - thumbH * 0.5f,
+                thumbW, thumbH, thumbW * 0.5f);
         }
+
+        juce::ignoreUnused(slider);
     }
 
     void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
