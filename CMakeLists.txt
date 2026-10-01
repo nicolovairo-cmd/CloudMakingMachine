@@ -7,12 +7,15 @@ if(NOT DEFINED JUCE_DIR)
 endif()
 
 if(NOT EXISTS "${JUCE_DIR}/CMakeLists.txt")
-    message(FATAL_ERROR
-        "JUCE was not found at: ${JUCE_DIR}"
-    )
+    message(FATAL_ERROR "JUCE was not found at: ${JUCE_DIR}")
 endif()
 
 add_subdirectory("${JUCE_DIR}" JUCE)
+
+juce_add_binary_data(CloudMakingMachineAssets
+    SOURCES
+        Assets/background.png
+)
 
 juce_add_plugin(CloudMakingMachineVST3
     COMPANY_NAME "LowMana"
@@ -31,24 +34,22 @@ juce_add_plugin(CloudMakingMachineVST3
 target_sources(CloudMakingMachineVST3
     PRIVATE
         PluginProcessor.cpp
+        PluginEditor.cpp
+        PluginEditor.h
 )
 
 juce_generate_juce_header(CloudMakingMachineVST3)
 
-target_compile_features(CloudMakingMachineVST3
-    PRIVATE
-        cxx_std_17
+target_compile_features(CloudMakingMachineVST3 PRIVATE cxx_std_17)
+
+target_compile_definitions(CloudMakingMachineVST3 PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_VST3_CAN_REPLACE_VST2=0
 )
 
-target_compile_definitions(CloudMakingMachineVST3
-    PRIVATE
-        JUCE_WEB_BROWSER=0
-        JUCE_USE_CURL=0
-        JUCE_VST3_CAN_REPLACE_VST2=0
-)
-
-target_link_libraries(CloudMakingMachineVST3
-    PRIVATE
-        juce::juce_audio_utils
-        juce::juce_dsp
+target_link_libraries(CloudMakingMachineVST3 PRIVATE
+    CloudMakingMachineAssets
+    juce::juce_audio_utils
+    juce::juce_dsp
 )
