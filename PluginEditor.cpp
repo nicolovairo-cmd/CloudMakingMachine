@@ -20,10 +20,6 @@ public:
         const auto shadow = juce::Colour::fromRGB(4, 30, 33);
         const auto white = juce::Colour::fromRGB(225, 247, 246);
 
-        const float liveProportion = juce::jlimit(
-            0.0f, 1.0f,
-            static_cast<float>(slider.valueToProportionOfLength(slider.getValue())));
-
         g.setImageResamplingQuality(juce::Graphics::highResamplingQuality);
 
         if (vertical)
@@ -41,10 +37,7 @@ public:
             const int gap = 2;
             const float usable = static_cast<float>(bottom - top - 8);
             const float segmentH = (usable - gap * (segments - 1)) / segments;
-            const float normalized = liveProportion;
-            const float visualPos = juce::jmap(
-                normalized, 0.0f, 1.0f,
-                static_cast<float>(bottom), static_cast<float>(top));
+            const float visualPos = sliderPos;
 
             for (int i = 0; i < segments; ++i)
             {
