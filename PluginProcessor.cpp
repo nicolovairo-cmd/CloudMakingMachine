@@ -1,786 +1,233 @@
-#include <JuceHeader.h>
+#include "PluginEditor.h"
+#include <BinaryData.h>
 
-//==============================================================================
-// Audio processor
-//==============================================================================
-
-class CloudMakingMachineAudioProcessor : public juce::AudioProcessor
+class CloudMakingMachineAudioProcessorEditor::LookAndFeel final : public juce::LookAndFeel_V4
 {
 public:
-    CloudMakingMachineAudioProcessor()
-        : AudioProcessor(
-              BusesProperties()
-                  .withInput(
-                      "Input",
-                      juce::AudioChannelSet::stereo(),
-                      true)
-                  .withOutput(
-                      "Output",
-                      juce::AudioChannelSet::stereo(),
-                      true)),
-          parameters(
-              *this,
-              nullptr,
-              "PARAMETERS",
-              createParameterLayout())
+    LookAndFeel()
     {
+        setColour(juce::Slider::thumbColourId, juce::Colours::white);
+        setColour(juce::Slider::trackColourId, juce::Colours::transparentBlack);
+        setColour(juce::Slider::backgroundColourId, juce::Colours::transparentBlack);
     }
 
-    ~CloudMakingMachineAudioProcessor() override = default;
-
-    //==========================================================================
-    static juce::AudioProcessorValueTreeState::ParameterLayout
-    createParameterLayout()
+    void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
+                          float sliderPos, float, float, juce::Slider::SliderStyle style,
+                          juce::Slider&) override
     {
-        using FloatParameter =
-            juce::AudioParameterFloat;
+        const bool vertical = style == juce::Slider::LinearVertical;
+        const auto cyan = juce::Colour::fromRGB(20, 220, 226);
+        const auto cyanBright = juce::Colour::fromRGB(38, 238, 244);
+        const auto dark = juce::Colour::fromRGB(12, 48, 52);
+        const auto shadow = juce::Colour::fromRGB(4, 30, 33);
+        const auto white = juce::Colour::fromRGB(225, 247, 246);
 
-        std::vector<
-            std::unique_ptr<juce::RangedAudioParameter>>
-            parameterList;
+        g.setImageResamplingQuality(juce::Graphics::lowResamplingQuality);
 
-        parameterList.push_back(
-            std::make_unique<FloatParameter>(
-                "delayTime",
-"Time",
-juce::NormalisableRange<float>(
-    1.0f,
-    2000.0f,
-    0.0f,
-    0.3f),
-350.0f));
-
-        parameterList.push_back(
-            std::make_unique<FloatParameter>(
-                "delayFeedback",
-                "Delay Feedback",
-                0.0f,
-                0.95f,
-                0.35f));
-
-        parameterList.push_back(
-            std::make_unique<FloatParameter>(
-                "delayMix",
-                "Delay Mix",
-                0.0f,
-                1.0f,
-                0.25f));
-
-        // Unico controllo per la modulazione imprevedibile del delay.
-        parameterList.push_back(
-            std::make_unique<FloatParameter>(
-                "delayChaos",
-                "Delay Chaos",
-                juce::NormalisableRange<float>(
-                    0.0f,
-                    1.0f),
-                0.20f));
-
-        parameterList.push_back(
-            std::make_unique<FloatParameter>(
-                "lpCutoff",
-"Low Pass",
-juce::NormalisableRange<float>(
-    20.0f,
-    20000.0f,
-    0.0f,
-    0.3f),
-15000.0f));
-
-        parameterList.push_back(
-            std::make_unique<FloatParameter>(
-                "hpCutoff",
-"High Pass",
-juce::NormalisableRange<float>(
-    20.0f,
-    5000.0f,
-    0.0f,
-    0.3f),
-900.0f));
-
-        parameterList.push_back(
-            std::make_unique<FloatParameter>(
-                "distTone",
-                "Distortion Tone",
-                0.0f,
-                1.0f,
-                0.80f));
-
-        parameterList.push_back(
-            std::make_unique<FloatParameter>(
-                "distAmount",
-                "Distortion Amount",
-                0.0f,
-                1.0f,
-                0.12f));
-
-        parameterList.push_back(
-            std::make_unique<FloatParameter>(
-                "compInput",
-                "Compressor Input",
-                0.0f,
-                1.0f,
-                0.50f));
-
-        parameterList.push_back(
-            std::make_unique<FloatParameter>(
-                "compPeak",
-                "Peak Reduction",
-                0.0f,
-                1.0f,
-                0.25f));
-
-        parameterList.push_back(
-            std::make_unique<FloatParameter>(
-                "globalDryWet",
-                "Global Dry Wet",
-                0.0f,
-                1.0f,
-                0.50f));
-
-        parameterList.push_back(
-            std::make_unique<FloatParameter>(
-                "outputGain",
-                "Output Volume",
-                juce::NormalisableRange<float>(
-                    -12.0f,
-                    12.0f,
-                    0.01f),
-                0.0f));
-
-        return {
-            parameterList.begin(),
-            parameterList.end()
-        };
-    }
-
-    //==========================================================================
-    void prepareToPlay(
-        double newSampleRate,
-        int samplesPerBlock) override
-    {
-        sampleRate = newSampleRate;
-
-        juce::dsp::ProcessSpec spec;
-        spec.sampleRate = newSampleRate;
-        spec.maximumBlockSize =
-            static_cast<juce::uint32>(samplesPerBlock);
-        spec.numChannels = 2;
-
-        dryBuffer.setSize(
-            2,
-            samplesPerBlock);
-
-        dryBuffer.clear();
-
-        delay.setMaximumDelayInSamples(
-            static_cast<int>(
-                newSampleRate * 2.05));
-
-        delay.prepare(spec);
-        delay.reset();
-
-        lowPass.prepare(spec);
-        highPass.prepare(spec);
-
-        lowPass.reset();
-        highPass.reset();
-
-        lowPass.setType(
-            juce::dsp::StateVariableTPTFilterType::lowpass);
-
-        highPass.setType(
-            juce::dsp::StateVariableTPTFilterType::highpass);
-
-        lowPass.setCutoffFrequency(
-            12000.0f);
-
-        highPass.setCutoffFrequency(
-            40.0f);
-
-        modulationPhase = 0.0f;
-        randomValue = 0.0f;
-        randomTarget = 0.0f;
-        randomCounter = 0;
-
-        envelope = 0.0f;
-    }
-
-    //==========================================================================
-    void releaseResources() override
-    {
-        delay.reset();
-
-        lowPass.reset();
-        highPass.reset();
-
-        dryBuffer.clear();
-    }
-
-    //==========================================================================
-    bool isBusesLayoutSupported(
-        const BusesLayout& layouts) const override
-    {
-        const auto input =
-            layouts.getMainInputChannelSet();
-
-        const auto output =
-            layouts.getMainOutputChannelSet();
-
-        if (input != output)
-            return false;
-
-        return input == juce::AudioChannelSet::mono()
-            || input == juce::AudioChannelSet::stereo();
-    }
-
-    //==========================================================================
-    void processBlock(
-        juce::AudioBuffer<float>& buffer,
-        juce::MidiBuffer& midiMessages) override
-    {
-        juce::ScopedNoDenormals noDenormals;
-
-        juce::ignoreUnused(midiMessages);
-
-        const int numberOfChannels =
-            buffer.getNumChannels();
-
-        const int numberOfSamples =
-            buffer.getNumSamples();
-
-        const int inputChannels =
-            getTotalNumInputChannels();
-
-        const int outputChannels =
-            getTotalNumOutputChannels();
-
-        const int channelsToProcess =
-            juce::jmin(
-                juce::jmin(numberOfChannels, 2),
-                juce::jmin(inputChannels, outputChannels));
-
-        if (channelsToProcess <= 0)
-            return;
-
-        //======================================================================
-        // Salvataggio del segnale dry originale
-        //======================================================================
-
-        dryBuffer.setSize(
-            numberOfChannels,
-            numberOfSamples,
-            false,
-            false,
-            true);
-
-        for (int channel = 0;
-             channel < numberOfChannels;
-             ++channel)
+        if (vertical)
         {
-            dryBuffer.copyFrom(
-                channel,
-                0,
-                buffer,
-                channel,
-                0,
-                numberOfSamples);
+            const int cx = x + width / 2;
+            const int top = y + 6;
+            const int bottom = y + height - 6;
+
+            g.setColour(shadow);
+            g.fillRect(cx - 8, top + 2, 16, bottom - top);
+            g.setColour(dark);
+            g.fillRect(cx - 6, top, 12, bottom - top);
+
+            const int segments = 18;
+            const int gap = 2;
+            const float usable = static_cast<float>(bottom - top - 8);
+            const float segmentH = (usable - gap * (segments - 1)) / segments;
+            const float normalized = juce::jmap(sliderPos, static_cast<float>(bottom),
+                                                static_cast<float>(top));
+
+            for (int i = 0; i < segments; ++i)
+            {
+                const float yy = bottom - 4.0f - (i + 1) * segmentH - i * gap;
+                g.setColour(((segments - i) / static_cast<float>(segments)) <= normalized
+                                ? cyanBright : juce::Colour::fromRGB(20, 70, 73));
+                g.fillRect(juce::Rectangle<float>(static_cast<float>(cx - 5), yy,
+                                                   10.0f, segmentH));
+            }
+
+            const int thumbY = juce::jlimit(top + 10, bottom - 10, juce::roundToInt(sliderPos));
+            g.setColour(shadow);
+            g.fillRect(cx - 12, thumbY - 12, 24, 24);
+            g.setColour(white);
+            g.fillRect(cx - 9, thumbY - 9, 18, 18);
+            g.setColour(cyan);
+            g.fillRect(cx - 6, thumbY - 6, 12, 12);
         }
-
-        // Cancella eventuali canali di uscita senza ingresso.
-        for (int channel = inputChannels;
-             channel < outputChannels;
-             ++channel)
+        else
         {
-            if (channel < numberOfChannels)
-            {
-                buffer.clear(
-                    channel,
-                    0,
-                    numberOfSamples);
-            }
-        }
+            const int cy = y + height / 2;
+            const int left = x + 4;
+            const int right = x + width - 4;
 
-        auto getParameter =
-            [this](const char* parameterID)
-        {
-            if (auto* parameter =
-                    parameters.getRawParameterValue(
-                        parameterID))
-            {
-                return parameter->load();
-            }
+            g.setColour(shadow);
+            g.fillRoundedRectangle((float) left + 2.0f, (float) cy - 4.0f,
+                                   (float) (right - left), 10.0f, 3.0f);
+            g.setColour(dark);
+            g.fillRoundedRectangle((float) left, (float) cy - 6.0f,
+                                   (float) (right - left), 10.0f, 3.0f);
 
-            return 0.0f;
-        };
+            const int fillRight = juce::roundToInt(juce::jmap(sliderPos,
+                                                              (float) left,
+                                                              (float) right));
+            g.setColour(cyanBright);
+            if (fillRight > left + 2)
+                g.fillRoundedRectangle((float) left + 2.0f, (float) cy - 4.0f,
+                                       (float) (fillRight - left - 2), 6.0f, 2.0f);
 
-        //======================================================================
-        // Parametri del delay
-        //======================================================================
-
-        const int delaySamples =
-            juce::jlimit(
-                1,
-                static_cast<int>(
-                    sampleRate * 2.0),
-                static_cast<int>(
-                    getParameter("delayTime")
-                    * 0.001
-                    * sampleRate));
-
-        const float delayFeedback =
-            juce::jlimit(
-                0.0f,
-                0.95f,
-                getParameter("delayFeedback"));
-
-        const float delayMix =
-            juce::jlimit(
-                0.0f,
-                1.0f,
-                getParameter("delayMix"));
-
-        const float delayChaos =
-            juce::jlimit(
-                0.0f,
-                1.0f,
-                getParameter("delayChaos"));
-
-        //======================================================================
-        // Delay con modulazione imprevedibile
-        //======================================================================
-
-        for (int sample = 0;
-             sample < numberOfSamples;
-             ++sample)
-        {
-            const float sineModulation =
-                std::sin(modulationPhase);
-
-            // Genera un nuovo obiettivo casuale ogni 100 millisecondi.
-            if (randomCounter <= 0)
-            {
-                randomTarget =
-                    random.nextFloat() * 2.0f - 1.0f;
-
-                randomCounter =
-                    static_cast<int>(
-                        sampleRate * 0.1);
-            }
-
-            --randomCounter;
-
-            // Rende la variazione casuale graduale.
-            randomValue +=
-                0.0025f
-                * (randomTarget - randomValue);
-
-            // A valori bassi prevale la sinusoide.
-            // A valori alti aumenta la componente casuale.
-            const float modulation =
-                sineModulation * (1.0f - delayChaos)
-                + randomValue * delayChaos;
-
-            // Variazione massima pari al 20% del tempo di delay.
-            const float modulationRange =
-                static_cast<float>(
-                    delaySamples)
-                * 0.20f;
-
-            const float modulatedDelay =
-                juce::jlimit(
-                    1.0f,
-                    static_cast<float>(
-                        sampleRate * 2.0 - 1.0),
-                    static_cast<float>(
-                        delaySamples)
-                    + modulation
-                      * modulationRange
-                      * delayChaos);
-
-            for (int channel = 0;
-                 channel < channelsToProcess;
-                 ++channel)
-            {
-                const float dry =
-                    buffer.getSample(
-                        channel,
-                        sample);
-
-                const float delayed =
-                    delay.popSample(
-                        channel,
-                        modulatedDelay);
-
-                const float feedbackSample =
-                    dry
-                    + delayed * delayFeedback;
-
-                delay.pushSample(
-                    channel,
-                    feedbackSample);
-
-                const float output =
-                    dry * (1.0f - delayMix)
-                    + delayed * delayMix;
-
-                buffer.setSample(
-                    channel,
-                    sample,
-                    output);
-            }
-
-            // Frequenza fissa della modulazione:
-            // circa 0.35 Hz.
-            modulationPhase +=
-                juce::MathConstants<float>::twoPi
-                * 0.35f
-                / static_cast<float>(
-                    sampleRate);
-
-            if (modulationPhase >=
-                juce::MathConstants<float>::twoPi)
-            {
-                modulationPhase -=
-                    juce::MathConstants<float>::twoPi;
-            }
-        }
-
-        //======================================================================
-        // Filtri
-        //======================================================================
-
-        lowPass.setCutoffFrequency(
-            juce::jlimit(
-                20.0f,
-                20000.0f,
-                getParameter("lpCutoff")));
-
-        highPass.setCutoffFrequency(
-            juce::jlimit(
-                20.0f,
-                5000.0f,
-                getParameter("hpCutoff")));
-
-        auto audioBlock =
-            juce::dsp::AudioBlock<float>(
-                buffer)
-                .getSubsetChannelBlock(
-                    0,
-                    static_cast<size_t>(
-                        channelsToProcess));
-
-        juce::dsp::ProcessContextReplacing<float>
-            filterContext(audioBlock);
-
-        lowPass.process(filterContext);
-        highPass.process(filterContext);
-
-        //======================================================================
-        // Distorsione
-        //======================================================================
-
-        const float tone =
-            juce::jlimit(
-                0.0f,
-                1.0f,
-                getParameter("distTone"));
-
-        const float amount =
-            juce::jlimit(
-                0.0f,
-                1.0f,
-                getParameter("distAmount"));
-
-        const float drive =
-            1.0f + 15.0f * amount;
-
-        const float toneGain =
-            0.65f + 0.35f * tone;
-
-        for (int channel = 0;
-             channel < channelsToProcess;
-             ++channel)
-        {
-            float* data =
-                buffer.getWritePointer(channel);
-
-            for (int sample = 0;
-                 sample < numberOfSamples;
-                 ++sample)
-            {
-                data[sample] =
-                    std::tanh(
-                        data[sample] * drive)
-                    * toneGain;
-            }
-        }
-
-        //======================================================================
-        // Compressore
-        //======================================================================
-
-        const float inputGain =
-            juce::Decibels::decibelsToGain(
-                juce::jmap(
-                    getParameter("compInput"),
-                    0.0f,
-                    1.0f,
-                    -12.0f,
-                    18.0f));
-
-        const float reduction =
-            getParameter("compPeak") * 18.0f;
-
-        const float attack =
-            std::exp(
-                -1.0f
-                / (0.010f
-                   * static_cast<float>(
-                       sampleRate)));
-
-        const float release =
-            std::exp(
-                -1.0f
-                / (0.350f
-                   * static_cast<float>(
-                       sampleRate)));
-
-        for (int sample = 0;
-             sample < numberOfSamples;
-             ++sample)
-        {
-            float detector = 0.0f;
-
-            for (int channel = 0;
-                 channel < channelsToProcess;
-                 ++channel)
-            {
-                detector = juce::jmax(
-                    detector,
-                    std::abs(
-                        buffer.getSample(
-                            channel,
-                            sample)
-                        * inputGain));
-            }
-
-            const float decibels =
-                juce::Decibels::gainToDecibels(
-                    detector + 1.0e-9f);
-
-            const float gainReduction =
-                juce::jlimit(
-                    0.0f,
-                    reduction,
-                    decibels);
-
-            if (gainReduction > envelope)
-            {
-                envelope =
-                    attack * envelope
-                    + (1.0f - attack)
-                      * gainReduction;
-            }
-            else
-            {
-                envelope =
-                    release * envelope
-                    + (1.0f - release)
-                      * gainReduction;
-            }
-
-            const float compressorGain =
-                juce::Decibels::decibelsToGain(
-                    -envelope * 0.75f);
-
-            for (int channel = 0;
-                 channel < channelsToProcess;
-                 ++channel)
-            {
-                buffer.setSample(
-                    channel,
-                    sample,
-                    buffer.getSample(
-                        channel,
-                        sample)
-                    * inputGain
-                    * compressorGain);
-            }
-        }
-
-        //======================================================================
-        // Dry/wet globale e volume
-        //======================================================================
-
-        const float globalDryWet =
-            juce::jlimit(
-                0.0f,
-                1.0f,
-                getParameter("globalDryWet"));
-
-        const float outputGain =
-            juce::Decibels::decibelsToGain(
-                getParameter("outputGain"));
-
-        for (int channel = 0;
-             channel < channelsToProcess;
-             ++channel)
-        {
-            const float* dryData =
-                dryBuffer.getReadPointer(channel);
-
-            float* outputData =
-                buffer.getWritePointer(channel);
-
-            for (int sample = 0;
-                 sample < numberOfSamples;
-                 ++sample)
-            {
-                const float wet =
-                    outputData[sample];
-
-                const float mixed =
-                    dryData[sample]
-                    * (1.0f - globalDryWet)
-                    + wet * globalDryWet;
-
-                outputData[sample] =
-                    mixed * outputGain;
-            }
+            g.setColour(shadow);
+            g.fillRect(fillRight - 8, cy - 11, 16, 22);
+            g.setColour(white);
+            g.fillRect(fillRight - 6, cy - 9, 12, 18);
+            g.setColour(cyan);
+            g.fillRect(fillRight - 3, cy - 6, 6, 12);
         }
     }
 
-    //==========================================================================
-    juce::AudioProcessorEditor* createEditor() override
+    void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
+                          float sliderPos, float rotaryStartAngle, float rotaryEndAngle,
+                          juce::Slider&) override
     {
-        return new juce::GenericAudioProcessorEditor(
-            *this);
+        const int cx = x + width / 2;
+        const int cy = y + height / 2;
+        const int r = juce::jmin(width, height) / 2 - 5;
+
+        const auto cyan = juce::Colour::fromRGB(20, 220, 226);
+        const auto cyanBright = juce::Colour::fromRGB(38, 238, 244);
+        const auto dark = juce::Colour::fromRGB(5, 35, 39);
+        const auto shadow = juce::Colour::fromRGB(3, 23, 26);
+        const auto white = juce::Colour::fromRGB(225, 247, 246);
+
+        g.setColour(shadow);
+        g.fillEllipse((float) (cx - r - 4), (float) (cy - r - 4),
+                      (float) ((r + 4) * 2), (float) ((r + 4) * 2));
+        g.setColour(cyan);
+        g.fillEllipse((float) (cx - r), (float) (cy - r),
+                      (float) (r * 2), (float) (r * 2));
+        g.setColour(dark);
+        g.fillEllipse((float) (cx - r + 6), (float) (cy - r + 6),
+                      (float) ((r - 6) * 2), (float) ((r - 6) * 2));
+
+        const float angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
+        juce::Path arc;
+        arc.addArc((float) (cx - r + 2), (float) (cy - r + 2),
+                   (float) ((r - 2) * 2), (float) ((r - 2) * 2),
+                   rotaryStartAngle, angle, true);
+        g.setColour(cyanBright);
+        g.strokePath(arc, juce::PathStrokeType(4.0f, juce::PathStrokeType::curved,
+                                                juce::PathStrokeType::rounded));
+
+        const float ix = cx + std::cos(angle) * (r - 13);
+        const float iy = cy + std::sin(angle) * (r - 13);
+        g.setColour(white);
+        g.fillRect(juce::roundToInt(ix) - 3, juce::roundToInt(iy) - 3, 6, 6);
     }
-
-    bool hasEditor() const override
-    {
-        return true;
-    }
-
-    //==========================================================================
-    const juce::String getName() const override
-    {
-        return "Cloud Making Machine";
-    }
-
-    bool acceptsMidi() const override
-    {
-        return false;
-    }
-
-    bool producesMidi() const override
-    {
-        return false;
-    }
-
-    bool isMidiEffect() const override
-    {
-        return false;
-    }
-
-    double getTailLengthSeconds() const override
-    {
-        return 2.0;
-    }
-
-    //==========================================================================
-    int getNumPrograms() override
-    {
-        return 1;
-    }
-
-    int getCurrentProgram() override
-    {
-        return 0;
-    }
-
-    void setCurrentProgram(int) override
-    {
-    }
-
-    const juce::String getProgramName(int) override
-    {
-        return {};
-    }
-
-    void changeProgramName(
-        int,
-        const juce::String&) override
-    {
-    }
-
-    //==========================================================================
-    void getStateInformation(
-        juce::MemoryBlock& destinationData) override
-    {
-        if (auto xml =
-                parameters.copyState().createXml())
-        {
-            copyXmlToBinary(
-                *xml,
-                destinationData);
-        }
-    }
-
-    void setStateInformation(
-        const void* data,
-        int sizeInBytes) override
-    {
-        if (auto xml =
-                getXmlFromBinary(
-                    data,
-                    sizeInBytes))
-        {
-            if (xml->hasTagName(
-                    parameters.state.getType()))
-            {
-                parameters.replaceState(
-                    juce::ValueTree::fromXml(*xml));
-            }
-        }
-    }
-
-private:
-    //==========================================================================
-    juce::AudioProcessorValueTreeState parameters;
-
-    juce::AudioBuffer<float> dryBuffer;
-
-    juce::dsp::DelayLine<float> delay{
-        200000
-    };
-
-    juce::dsp::StateVariableTPTFilter<float>
-        lowPass;
-
-    juce::dsp::StateVariableTPTFilter<float>
-        highPass;
-
-    double sampleRate = 44100.0;
-
-    // Parametri della modulazione.
-    float modulationPhase = 0.0f;
-    float randomValue = 0.0f;
-    float randomTarget = 0.0f;
-
-    int randomCounter = 0;
-
-    juce::Random random;
-
-    // Stato del compressore.
-    float envelope = 0.0f;
 };
 
-//==============================================================================
-
-juce::AudioProcessor* JUCE_CALLTYPE
-createPluginFilter()
+CloudMakingMachineAudioProcessorEditor::CloudMakingMachineAudioProcessorEditor(
+    CloudMakingMachineAudioProcessor& p)
+    : AudioProcessorEditor(&p), processor(p),
+      background(juce::ImageCache::getFromMemory(BinaryData::background_png,
+                                                 BinaryData::background_pngSize)),
+      lookAndFeel(std::make_unique<LookAndFeel>())
 {
-    return new CloudMakingMachineAudioProcessor();
+    setSize(600, 400);
+    setResizable(false, false);
+
+    configureSlider(delayTime, false);
+    configureSlider(delayFeedback, false);
+    configureSlider(delayChaos, false);
+    configureSlider(delayMix, false);
+
+    configureSlider(lowPass, false);
+    configureSlider(highPass, false);
+    configureSlider(distTone, false);
+    configureSlider(distAmount, false);
+    configureSlider(compInput, false);
+    configureSlider(compPeak, false);
+
+    configureSlider(dryWet, true);
+    configureSlider(output, true);
+
+    auto& state = processor.parameters;
+    delayTimeAttachment = std::make_unique<Attachment>(state, "delayTime", delayTime);
+    delayFeedbackAttachment = std::make_unique<Attachment>(state, "delayFeedback", delayFeedback);
+    delayChaosAttachment = std::make_unique<Attachment>(state, "delayChaos", delayChaos);
+    delayMixAttachment = std::make_unique<Attachment>(state, "delayMix", delayMix);
+    lowPassAttachment = std::make_unique<Attachment>(state, "lpCutoff", lowPass);
+    highPassAttachment = std::make_unique<Attachment>(state, "hpCutoff", highPass);
+    distToneAttachment = std::make_unique<Attachment>(state, "distTone", distTone);
+    distAmountAttachment = std::make_unique<Attachment>(state, "distAmount", distAmount);
+    compInputAttachment = std::make_unique<Attachment>(state, "compInput", compInput);
+    compPeakAttachment = std::make_unique<Attachment>(state, "compPeak", compPeak);
+    dryWetAttachment = std::make_unique<Attachment>(state, "globalDryWet", dryWet);
+    outputAttachment = std::make_unique<Attachment>(state, "outputGain", output);
+}
+
+void CloudMakingMachineAudioProcessorEditor::configureSlider(juce::Slider& slider, bool rotary)
+{
+    addAndMakeVisible(slider);
+    slider.setLookAndFeel(lookAndFeel.get());
+    slider.setSliderStyle(rotary ? juce::Slider::RotaryHorizontalVerticalDrag
+                                 : juce::Slider::LinearHorizontal);
+    slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    slider.setRange(0.0, 1.0, 0.0);
+    slider.setMouseCursor(juce::MouseCursor::PointingHandCursor);
+    slider.setPopupDisplayEnabled(false, false, this);
+    slider.setDoubleClickReturnValue(false, 0.0);
+
+    if (rotary)
+        slider.setRotaryParameters(juce::MathConstants<float>::pi * 1.25f,
+                                   juce::MathConstants<float>::pi * 3.75f, true);
+}
+
+void CloudMakingMachineAudioProcessorEditor::paint(juce::Graphics& g)
+{
+    g.fillAll(juce::Colour::fromRGB(42, 128, 133));
+
+    if (background.isValid())
+        g.drawImageAt(background, 0, 0);
+
+    // The original background contains placeholder Dry/Wet / Output text.
+    // Mask only those small areas and draw the final larger labels.
+    g.setColour(juce::Colour::fromRGB(42, 128, 133));
+    g.fillRect(188, 349, 126, 24);
+    g.fillRect(432, 349, 104, 24);
+
+    g.setColour(juce::Colour::fromRGB(0, 235, 240));
+    g.setFont(juce::Font(15.0f, juce::Font::bold));
+    g.drawText("DRY/WET", 220, 352, 92, 24, juce::Justification::centredLeft, false);
+    g.drawText("OUTPUT", 442, 352, 82, 24, juce::Justification::centredLeft, false);
+}
+
+void CloudMakingMachineAudioProcessorEditor::resized()
+{
+    // Layout follows the approved 600x400 preview.
+    delayTime.setBounds(28, 86, 192, 35);
+    delayFeedback.setBounds(28, 143, 192, 35);
+    delayChaos.setBounds(28, 200, 192, 35);
+    delayMix.setBounds(28, 257, 192, 35);
+
+    // Vertical controls are intentionally compact enough to stay clear of the knobs.
+    lowPass.setSliderStyle(juce::Slider::LinearVertical);
+    highPass.setSliderStyle(juce::Slider::LinearVertical);
+    distTone.setSliderStyle(juce::Slider::LinearVertical);
+    distAmount.setSliderStyle(juce::Slider::LinearVertical);
+    compInput.setSliderStyle(juce::Slider::LinearVertical);
+    compPeak.setSliderStyle(juce::Slider::LinearVertical);
+
+    lowPass.setBounds(248, 88, 40, 224);
+    highPass.setBounds(292, 88, 40, 224);
+    distTone.setBounds(358, 88, 40, 224);
+    distAmount.setBounds(402, 88, 40, 224);
+    compInput.setBounds(468, 88, 40, 224);
+    compPeak.setBounds(522, 88, 40, 224);
+
+    dryWet.setBounds(303, 340, 50, 50);
+    output.setBounds(510, 340, 50, 50);
 }
