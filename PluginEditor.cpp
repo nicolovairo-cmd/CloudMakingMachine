@@ -270,3 +270,7 @@ compPeak.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
 
 compInput.setBounds(475, 112, 82, 82);
 compPeak.setBounds(475, 218, 82, 82);
+
+dryWet.setBounds(303, 340, 50, 50);
+output.setBounds(510, 340, 50, 50);
+}
