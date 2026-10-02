@@ -212,8 +212,8 @@ void CloudMakingMachineAudioProcessorEditor::paint(juce::Graphics& g)
 
     g.setColour(cyan);
     g.setFont(juce::Font(21.0f, juce::Font::bold));
-    g.drawText("CLOUD MAKING MACHINE", 16, 10, 350, 28,
-               juce::Justification::left, false);
+    g.drawText("CLOUD MAKING MACHINE", 234, 10, 350, 28,
+           juce::Justification::left, false);
 
     g.setColour(cyanDim);
     g.fillRect(16, 43, 568, 2);
@@ -249,6 +249,8 @@ void CloudMakingMachineAudioProcessorEditor::paint(juce::Graphics& g)
                juce::Justification::left, false);
 
     // FILTERS
+    g.setColour(juce::Colours::white);
+    
     g.drawText("LOWPASS", 252, 88, 86, 22,
                juce::Justification::centred, false);
     g.drawText("HIGHPASS", 252, 202, 86, 22,
@@ -267,10 +269,11 @@ void CloudMakingMachineAudioProcessorEditor::paint(juce::Graphics& g)
                juce::Justification::centred, false);
 
     // Bottom labels
-    g.drawText("DRY/WET", 220, 352, 80, 24,
-               juce::Justification::left, false);
-    g.drawText("OUTPUT", 442, 352, 64, 24,
-               juce::Justification::left, false);
+   g.drawText("DRY/WET", 84, 365, 80, 24,
+           juce::Justification::centred, false);
+
+g.drawText("OUTPUT", 428, 365, 64, 24,
+           juce::Justification::centred, false);
 };
 
 void CloudMakingMachineAudioProcessorEditor::resized()
