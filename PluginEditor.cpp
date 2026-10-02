@@ -254,23 +254,23 @@ void CloudMakingMachineAudioProcessorEditor::resized()
 lowPass.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
 highPass.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
 
-lowPass.setBounds(250, 112, 82, 82);
-highPass.setBounds(250, 218, 82, 82);
+lowPass.setBounds(256, 118, 70, 70);
+highPass.setBounds(256, 224, 70, 70);
 
 // DISTORTION
 distTone.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
 distAmount.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
 
-distTone.setBounds(360, 112, 82, 82);
-distAmount.setBounds(360, 218, 82, 82);
+distTone.setBounds(376, 118, 70, 70);
+distAmount.setBounds(376, 224, 70, 70);
 
 // COMPRESSION
 compInput.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
 compPeak.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
 
-compInput.setBounds(475, 112, 82, 82);
-compPeak.setBounds(475, 218, 82, 82);
+compInput.setBounds(489, 118, 70, 70);
+compPeak.setBounds(489, 224, 70, 70);
 
-dryWet.setBounds(303, 340, 50, 50);
-output.setBounds(510, 340, 50, 50);
+dryWet.setBounds(28, 340, 192, 35);
+output.setBounds(364, 340, 192, 35);
 }
