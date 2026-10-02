@@ -115,12 +115,12 @@ CloudMakingMachineAudioProcessorEditor::CloudMakingMachineAudioProcessorEditor(
     configureSlider(delayChaos, false);
     configureSlider(delayMix, false);
 
-    configureSlider(lowPass, false);
-    configureSlider(highPass, false);
-    configureSlider(distTone, false);
-    configureSlider(distAmount, false);
-    configureSlider(compInput, false);
-    configureSlider(compPeak, false);
+    configureSlider(lowPass, true);
+    configureSlider(highPass, true);
+    configureSlider(distTone, true);
+    configureSlider(distAmount, true);
+    configureSlider(compInput, true);
+    configureSlider(compPeak, true);
 
     configureSlider(dryWet, true);
     configureSlider(output, true);
