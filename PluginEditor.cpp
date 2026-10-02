@@ -115,12 +115,12 @@ CloudMakingMachineAudioProcessorEditor::CloudMakingMachineAudioProcessorEditor(
     configureSlider(delayChaos, false);
     configureSlider(delayMix, false);
 
-    configureSlider(lowPass, true);
-    configureSlider(highPass, true);
-    configureSlider(distTone, true);
-    configureSlider(distAmount, true);
-    configureSlider(compInput, true);
-    configureSlider(compPeak, true);
+    configureSlider(lowPass, false);
+    configureSlider(highPass, false);
+    configureSlider(distTone, false);
+    configureSlider(distAmount, false);
+    configureSlider(compInput, false);
+    configureSlider(compPeak, false);
 
     configureSlider(dryWet, true);
     configureSlider(output, true);
@@ -170,9 +170,10 @@ void CloudMakingMachineAudioProcessorEditor::configureSlider(juce::Slider& slide
     {
         // Knob travel: 8 o'clock (minimum) -> 4 o'clock (maximum).
         // 240 degrees clockwise, with hard limits at both ends.
-        slider.setRotaryParameters(juce::MathConstants<float>::pi * 4.0f / 3.0f,
-                                   juce::MathConstants<float>::pi * 8.0f / 3.0f,
-                                   true);
+        slider.setRotaryParameters(
+    5.0f * juce::MathConstants<float>::pi / 6.0f,
+    13.0f * juce::MathConstants<float>::pi / 6.0f,
+    true);
     }
 }
 
@@ -248,18 +249,24 @@ void CloudMakingMachineAudioProcessorEditor::resized()
     delayChaos.setBounds(28, 200, 192, 35);
     delayMix.setBounds(28, 257, 192, 35);
 
-    // Filters: two rotary controls.
-    lowPass.setBounds(265, 112, 60, 60);
-    highPass.setBounds(265, 230, 60, 60);
+    // Vertical controls are intentionally compact enough to stay clear of the knobs.
+    // FILTERS
+lowPass.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+highPass.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
 
-    // Distortion: two rotary controls.
-    distTone.setBounds(375, 112, 60, 60);
-    distAmount.setBounds(375, 230, 60, 60);
+lowPass.setBounds(250, 112, 82, 82);
+highPass.setBounds(250, 218, 82, 82);
 
-    // Compression: two rotary controls.
-    compInput.setBounds(494, 112, 60, 60);
-    compPeak.setBounds(494, 230, 60, 60);
+// DISTORTION
+distTone.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+distAmount.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
 
-    dryWet.setBounds(303, 340, 50, 50);
-    output.setBounds(510, 340, 50, 50);
-}
+distTone.setBounds(360, 112, 82, 82);
+distAmount.setBounds(360, 218, 82, 82);
+
+// COMPRESSION
+compInput.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+compPeak.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+
+compInput.setBounds(475, 112, 82, 82);
+compPeak.setBounds(475, 218, 82, 82);
