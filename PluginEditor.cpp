@@ -218,27 +218,59 @@ void CloudMakingMachineAudioProcessorEditor::paint(juce::Graphics& g)
     g.setColour(cyanDim);
     g.fillRect(16, 43, 568, 2);
 
-    auto drawPanel = [&g, &cyan, &cyanDim, &panel](int x, int y, int w, int h, const char* title)
+        auto drawPanel = [&g, &cyanDim, &panel](int x, int y, int w, int h)
     {
         g.setColour(panel);
         g.fillRoundedRectangle((float)x, (float)y, (float)w, (float)h, 4.0f);
+
         g.setColour(cyanDim);
-        g.drawRoundedRectangle((float)x, (float)y, (float)w, (float)h, 4.0f, 2.0f);
-        g.setColour(cyan);
-        g.setFont(juce::Font(13.0f, juce::Font::bold));
-        g.drawText(title, x + 8, y + 5, w - 16, 22, juce::Justification::left, false);
+        g.drawRoundedRectangle((float)x, (float)y,
+                               (float)w, (float)h, 4.0f, 2.0f);
     };
 
-    drawPanel(16, 56, 218, 274, "DELAY");
-    drawPanel(244, 56, 102, 274, "FILTERS");
-    drawPanel(354, 56, 102, 274, "DISTORTION");
-    drawPanel(464, 56, 120, 274, "COMPRESSION");
+    // Panels - no section titles
+    drawPanel(16, 56, 218, 274);
+    drawPanel(244, 56, 102, 274);
+    drawPanel(354, 56, 102, 274);
+    drawPanel(464, 56, 120, 274);
 
-    // Output labels: kept to the left of the knobs, with no overlap.
+    // Control labels
     g.setColour(cyan);
-    g.setFont(juce::Font(15.0f, juce::Font::bold));
-    g.drawText("DRY/WET", 220, 352, 80, 24, juce::Justification::left, false);
-    g.drawText("OUTPUT", 442, 352, 64, 24, juce::Justification::left, false);
+    g.setFont(juce::Font(13.0f, juce::Font::bold));
+
+    // DELAY
+    g.drawText("DELAY TIME", 22, 68, 190, 22,
+               juce::Justification::left, false);
+    g.drawText("FEEDBACK", 22, 130, 190, 22,
+               juce::Justification::left, false);
+    g.drawText("CLOUDS", 22, 192, 190, 22,
+               juce::Justification::left, false);
+    g.drawText("MIX", 22, 254, 190, 22,
+               juce::Justification::left, false);
+
+    // FILTERS
+    g.drawText("LOWPASS", 252, 88, 86, 22,
+               juce::Justification::centred, false);
+    g.drawText("HIGHPASS", 252, 220, 86, 22,
+               juce::Justification::centred, false);
+
+    // DISTORTION
+    g.drawText("TONE", 362, 88, 86, 22,
+               juce::Justification::centred, false);
+    g.drawText("DRIVE", 362, 220, 86, 22,
+               juce::Justification::centred, false);
+
+    // COMPRESSION
+    g.drawText("GAIN", 477, 88, 86, 22,
+               juce::Justification::centred, false);
+    g.drawText("SQUASH", 477, 220, 86, 22,
+               juce::Justification::centred, false);
+
+    // Bottom labels
+    g.drawText("DRY/WET", 220, 352, 80, 24,
+               juce::Justification::left, false);
+    g.drawText("OUTPUT", 442, 352, 64, 24,
+               juce::Justification::left, false);
 };
 
 void CloudMakingMachineAudioProcessorEditor::resized()
