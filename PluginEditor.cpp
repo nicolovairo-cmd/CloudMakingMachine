@@ -122,8 +122,8 @@ CloudMakingMachineAudioProcessorEditor::CloudMakingMachineAudioProcessorEditor(
     configureSlider(compInput, true);
     configureSlider(compPeak, true);
 
-    configureSlider(dryWet, true);
-    configureSlider(output, true);
+    configureSlider(dryWet, false);
+    configureSlider(output, false);
 
     auto& state = processor.parameters;
     delayTimeAttachment = std::make_unique<Attachment>(state, "delayTime", delayTime);
