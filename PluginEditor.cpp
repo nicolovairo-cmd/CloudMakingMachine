@@ -241,29 +241,29 @@ void CloudMakingMachineAudioProcessorEditor::paint(juce::Graphics& g)
     // DELAY
     g.drawText("DELAY TIME", 22, 68, 190, 22,
                juce::Justification::left, false);
-    g.drawText("FEEDBACK", 22, 130, 190, 22,
+    g.drawText("FEEDBACK", 22, 120, 190, 22,
                juce::Justification::left, false);
-    g.drawText("CLOUDS", 22, 192, 190, 22,
+    g.drawText("CLOUDS", 22, 182, 190, 22,
                juce::Justification::left, false);
-    g.drawText("MIX", 22, 254, 190, 22,
+    g.drawText("MIX", 22, 244, 190, 22,
                juce::Justification::left, false);
 
     // FILTERS
     g.drawText("LOWPASS", 252, 88, 86, 22,
                juce::Justification::centred, false);
-    g.drawText("HIGHPASS", 252, 220, 86, 22,
+    g.drawText("HIGHPASS", 252, 202, 86, 22,
                juce::Justification::centred, false);
 
     // DISTORTION
     g.drawText("TONE", 362, 88, 86, 22,
                juce::Justification::centred, false);
-    g.drawText("DRIVE", 362, 220, 86, 22,
+    g.drawText("DRIVE", 362, 202, 86, 22,
                juce::Justification::centred, false);
 
     // COMPRESSION
     g.drawText("GAIN", 477, 88, 86, 22,
                juce::Justification::centred, false);
-    g.drawText("SQUASH", 477, 220, 86, 22,
+    g.drawText("SQUASH", 477, 202, 86, 22,
                juce::Justification::centred, false);
 
     // Bottom labels
