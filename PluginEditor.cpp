@@ -167,8 +167,13 @@ void CloudMakingMachineAudioProcessorEditor::configureSlider(juce::Slider& slide
     };
 
     if (rotary)
-        slider.setRotaryParameters(juce::MathConstants<float>::pi * 1.25f,
-                                   juce::MathConstants<float>::pi * 3.75f, true);
+    {
+        // Knob travel: 8 o'clock (minimum) -> 4 o'clock (maximum).
+        // 240 degrees clockwise, with hard limits at both ends.
+        slider.setRotaryParameters(juce::MathConstants<float>::pi * 4.0f / 3.0f,
+                                   juce::MathConstants<float>::pi * 8.0f / 3.0f,
+                                   true);
+    }
 }
 
 void CloudMakingMachineAudioProcessorEditor::timerCallback()
